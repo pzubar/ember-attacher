@@ -177,9 +177,6 @@ importers:
       '@floating-ui/dom':
         specifier: ^1.7.2
         version: 1.7.2
-      ember-maybe-in-element:
-        specifier: ^2.1.0
-        version: 2.1.0(supports-color@8.1.1)
     devDependencies:
       '@babel/core':
         specifier: ^7.28.0
@@ -235,9 +232,6 @@ importers:
       ember-cli-sass:
         specifier: ^11.0.1
         version: 11.0.1(supports-color@8.1.1)
-      ember-maybe-in-element:
-        specifier: ^2.1.0
-        version: 2.1.0(supports-color@8.1.1)
       sass:
         specifier: ^1.72.0
         version: 1.89.2
@@ -3401,10 +3395,6 @@ packages:
   ember-load-initializers@2.1.2:
     resolution: {integrity: sha512-CYR+U/wRxLbrfYN3dh+0Tb6mFaxJKfdyz+wNql6cqTrA0BBi9k6J3AaKXj273TqvEpyyXegQFFkZEiuZdYtgJw==}
     engines: {node: 6.* || 8.* || >= 10.*}
-
-  ember-maybe-in-element@2.1.0:
-    resolution: {integrity: sha512-6WAzPbf4BNQIQzkur2+zRJJJ/PKQoujIYgFjrpj3fOPy8iRlxVUm0/B41qbFyg1LE6bVbg0cWbuESWEvJ9Rswg==}
-    engines: {node: 10.* || >= 12}
 
   ember-modifier-manager-polyfill@1.2.0:
     resolution: {integrity: sha512-bnaKF1LLKMkBNeDoetvIJ4vhwRPKIIumWr6dbVuW6W6p4QV8ZiO+GdF8J7mxDNlog9CeL9Z/7wam4YS86G8BYA==}
@@ -11449,14 +11439,6 @@ snapshots:
       ember-cli-typescript: 2.0.2(@babel/core@7.28.0(supports-color@8.1.1))(supports-color@8.1.1)
     transitivePeerDependencies:
       - '@babel/core'
-      - supports-color
-
-  ember-maybe-in-element@2.1.0(supports-color@8.1.1):
-    dependencies:
-      ember-cli-babel: 7.26.11(supports-color@8.1.1)
-      ember-cli-htmlbars: 6.3.0(supports-color@8.1.1)
-      ember-cli-version-checker: 5.1.2(supports-color@8.1.1)
-    transitivePeerDependencies:
       - supports-color
 
   ember-modifier-manager-polyfill@1.2.0(@babel/core@7.28.0(supports-color@8.1.1))(supports-color@8.1.1):

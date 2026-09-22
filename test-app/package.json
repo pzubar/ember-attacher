@@ -29,7 +29,6 @@
   "dependencies": {
     "ember-auto-import": "^2.7.2",
     "ember-cli-sass": "^11.0.1",
-    "ember-maybe-in-element": "^2.1.0",
     "sass": "^1.72.0"
   },
   "devDependencies": {
@@ -57,9 +56,9 @@
     "ember-cli-sri": "^2.1.1",
     "ember-cli-terser": "^4.0.2",
     "ember-load-initializers": "^2.1.2",
-    "ember-qunit": "^6.2.0",
+    "ember-qunit": "~5.1.5",
     "ember-resolver": "~11.0.1",
-    "ember-source": "~4.12.3",
+    "ember-source": "~3.28.12",
     "ember-source-channel-url": "^3.0.0",
     "ember-svg-jar": "^2.6.0",
     "ember-truth-helpers": "^4.0.3",

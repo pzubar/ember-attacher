@@ -39,8 +39,7 @@
   "dependencies": {
     "@ember/test-waiters": "^3.1.0",
     "@embroider/addon-shim": "^1.10.0",
-    "@floating-ui/dom": "^1.7.2",
-    "ember-maybe-in-element": "^2.1.0"
+    "@floating-ui/dom": "^1.7.2"
   },
   "engines": {
     "node": "16.* || >= 18"
