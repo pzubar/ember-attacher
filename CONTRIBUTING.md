@@ -4,13 +4,13 @@
 
 * `git clone <repository-url>`
 * `cd my-addon`
-* `yarn install`
+* `pnpm install`
 
 ## Linting
 
-* `yarn lint:hbs`
-* `yarn lint:js`
-* `yarn lint:js -- --fix`
+* `pnpm lint:hbs`
+* `pnpm lint:js`
+* `pnpm lint:js -- --fix`
 
 ## Running tests
 
@@ -24,3 +24,7 @@
 * Visit the dummy application at [http://localhost:4200](http://localhost:4200).
 
 For more information on using ember-cli, visit [https://cli.emberjs.com/release/](https://cli.emberjs.com/release/).
+
+## Releasing
+
+Published package is `addon/` (`pnpm --filter ember-attacher publish --access public`, then tag `v<version>` and create the matching GitHub Release). Keep **4.0.0** on `beta` and do not `npm dist-tag add ember-attacher@4.0.0 latest`.

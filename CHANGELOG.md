@@ -1,5 +1,117 @@
+## v5.0.0-beta.1 (2026-11-19)
+
+> **Beta of the 5.0 line** — not a stable release. Install with `npm i ember-attacher@beta` or `npm i ember-attacher@5.0.0-beta.1`. The npm `latest` dist-tag remains on the 4.x line. See [#1131](https://github.com/tylerturdenpants/ember-attacher/pull/1131). Includes tip-of-PR restore of immediate `a.show` / `a.hide` / `a.toggle` semantics and related fixes after `5.0.0-beta.0` staging.
+
+## v5.0.0-beta.0 (2026-11-19)
+
+> Superseded for the npm `beta` dist-tag by `5.0.0-beta.1` (same PR line). An orphaned npm stage of `5.0.0-beta.0` from `e3ba55c` may still need `npm stage reject` if not already cleared.
 
 
+#### :boom: Breaking Change
+* **Platform & Test Floor (#1125):** Raised minimum `ember-source` / `ember-cli` floor to `>= 4.12 LTS` and `Node.js >= 20 LTS`; dropped Ember 3.28 and Node 18.
+* **Removed `<BasicAttacher>` & 4.x Deprecations (#1127 / #1131):** Removed `BasicAttacher`, implicit parent target fallback (debug `assert()` fires when no target binding is supplied, while allowing nullable reactive `@target={{this.dynamicTarget}}`), `@explicitTarget`, `a.reference`, `a.setReference()`, `@flip`, `@overflowPadding`, `@floatingUiOptions`, `@floatingElementContainer`, `@isOffset`, `@style`, `@additionalClass`, `@onInitializeAttacher`, `@onWillDestroy`, and `@configKey`.
+* **1-Pass In-Place Top-Layer Host (#1126):** Removed `<meta hidden>`, `MaybeInElement` (`{{#in-element}}`), and `@floatingElementContainer` portaling for components; `<AttachTooltip>` and `<AttachPopover>` render in place and promote to the Top Layer via `popover="manual"`.
+* **5.0 Component Defaults & Accessibility (#1126):**
+  * `<AttachPopover>` defaults to `showOn: 'click'`, `hideOn: 'click clickout escapekey'`, `interactive: true`, and `lazyRender: true`.
+  * `<AttachTooltip>` and `{{tooltip}}` default `interactive: true` (WCAG 1.4.13 hoverable tooltips; opt out with `@interactive={{false}}`).
+  * `@autoUpdate` defaults to `true`.
+* **CSS & Animation Contract (#1126):** Replaced `div[x-circle]` with `.ember-attacher-fill-circle`, removed `x-arrow`, removed `.ember-attacher-show` / `.ember-attacher-hide` classes, gated spatial motion under `@media (prefers-reduced-motion: no-preference)`, removed permanent idle `will-change: transform` and `perspective: 800px`, and migrated show/hide lifecycle to CSS `@starting-style` + `transition-behavior: allow-discrete` + WAAPI `getAnimations({ subtree: true })` with zero pre-`computePosition` `rAF` delay.
+
+#### :rocket: Enhancement
+* **Native `.gts` / `.ts` & Single-Owner Declarations (#1127, #1129 / #1131):** Converted `addon/src/` to strict `.ts` and `.gts` components, emitting `.d.ts` and `EmberAttacherRegistry` directly from source during build and validating negative contracts via `@glint-expect-error`.
+* **Accessibility & Triggers (#1126):** Smart Tooltip ARIA (`aria-labelledby` upfront on nameless icon triggers, duplicate `aria-describedby` suppression, open-only `aria-describedby` otherwise), `[interestfor="<id>"]` trigger pairing alongside `[popovertarget="<id>"]`, `data-placement` emitted alongside `x-placement`, and removal of all `@ember/runloop` and `@ember/object` imports.
+
+#### :memo: Documentation
+* **5.0 Documentation (#1127 / #1131):** Updated `addon/docs/upgrade-guide-5.0.md`, `README.md`, and `docs/adr/` for the 5.0 architecture, defaults, animation lifecycle, and migration guide.
+
+
+## v4.4.0 (2026-11-18)
+
+#### :rocket: Enhancement
+* [#1120](https://github.com/tylerturdenpants/ember-attacher/pull/1120) / [#1121](https://github.com/tylerturdenpants/ember-attacher/pull/1121) / [#1122](https://github.com/tylerturdenpants/ember-attacher/pull/1122) / [#1115](https://github.com/tylerturdenpants/ember-attacher/issues/1115) / [#64](https://github.com/tylerturdenpants/ember-attacher/issues/64) Extract `AttacherCore`, add headless `<Attacher>`, target bindings (`{{a.target}}`), and a `{{tooltip}}` singleton pool via `TooltipDomHost` with 300ms warm delay-group handoff ([@pzubar](https://github.com/pzubar))
+* [#1114](https://github.com/tylerturdenpants/ember-attacher/issues/1114) Publish TypeScript declaration files (`.d.ts` across `'ember-attacher'`, `'ember-attacher/test-support'`, `'ember-attacher/defaults'`, `'ember-attacher/components/*'`, and `'ember-attacher/template-registry'`) plus Glint `EmberAttacherRegistry`, `VirtualElement` / optional-`element` `arrow()` types, and automated `ember-tsc` typechecking in CI ([@pzubar](https://github.com/pzubar))
+* [#1073](https://github.com/tylerturdenpants/ember-attacher/pull/1073) Make `@animation="fill"` compatible with `@arrow={{true}}` by clipping `div[x-circle]` inside `.ember-attacher-fill-backdrop` instead of setting `overflow: hidden` on the arrow container, and remove debug warning `70015` ([@pzubar](https://github.com/pzubar))
+* [#1123](https://github.com/tylerturdenpants/ember-attacher/pull/1123) / [#1116](https://github.com/tylerturdenpants/ember-attacher/issues/1116) Add `until: '5.0.0'` deprecation suite (implicit parent target, legacy `BasicAttacher` template helpers, deprecated `@` args) and `addon/docs/upgrade-guide-5.0.md` ([@pzubar](https://github.com/pzubar))
+
+#### :bug: Bug Fix
+* [#1123](https://github.com/tylerturdenpants/ember-attacher/pull/1123) / [#1116](https://github.com/tylerturdenpants/ember-attacher/issues/1116) Stabilize `AttacherCore` show/hide races, attachment-tree / singleton nesting, target resolution, and `isVisible()` selector checks ([@pzubar](https://github.com/pzubar))
+
+#### :memo: Documentation & Housecleaning
+* **No Sass/SCSS dependency:** the published addon ships plain CSS (`ember-attacher/styles`); consumers do **not** need `sass`, `scss`, or `ember-cli-sass` to use ember-attacher ([@pzubar](https://github.com/pzubar))
+* [#1124](https://github.com/tylerturdenpants/ember-attacher/pull/1124) / [#1119](https://github.com/tylerturdenpants/ember-attacher/issues/1119) Drop `release-it` / `release-it-pnpm` and document manual publish + git tag + GitHub Release ([@pzubar](https://github.com/pzubar))
+* [#1123](https://github.com/tylerturdenpants/ember-attacher/pull/1123) / [#1119](https://github.com/tylerturdenpants/ember-attacher/issues/1119) Non-breaking Dependabot / tooling remediation for the 4.4 line ([@pzubar](https://github.com/pzubar))
+
+#### Committers: 1
+- Petro Zubar ([@pzubar](https://github.com/pzubar))
+
+
+## v4.3.0 (2026-11-17)
+
+#### :boom: Behavioral Change (Accessibility & Test Support)
+* [#1074](https://github.com/tylerturdenpants/ember-attacher/pull/1074) / [#1118](https://github.com/tylerturdenpants/ember-attacher/pull/1118) / [#1113](https://github.com/tylerturdenpants/ember-attacher/issues/1113) `<AttachTooltip>` now manages `aria-describedby` in `BasicAttacher` **only while open**, preserving any pre-existing `aria-describedby` tokens on the target instead of adding/clobbering it while closed ([@pzubar](https://github.com/pzubar))
+* [#1095](https://github.com/tylerturdenpants/ember-attacher/pull/1095) / [#1112](https://github.com/tylerturdenpants/ember-attacher/issues/1112) `isVisible()` in `ember-attacher/test-support` now checks `display !== 'none'`, `visibility !== 'hidden'`, `aria-hidden !== 'true'`, and `:popover-open` (when `[popover]` is present), instead of only `display !== 'none'` ([@pzubar](https://github.com/pzubar))
+
+#### :rocket: Enhancement
+* [#1074](https://github.com/tylerturdenpants/ember-attacher/pull/1074) / [#1118](https://github.com/tylerturdenpants/ember-attacher/pull/1118) / [#1113](https://github.com/tylerturdenpants/ember-attacher/issues/1113) Add default accessibility wiring and automatic diagonal `safePolygon` hover corridor:
+  * `<AttachPopover>` automatically sets `aria-expanded`, `aria-controls`, and `aria-haspopup` (defaulting to `'dialog'` or matching valid `@ariaRole`) when not already provided by the caller, and restores focus to the target on `Escape` dismissal
+  * `<AttachTooltip>` now forwards `@onInitializeAttacher` and `@onWillDestroy` to `<BasicAttacher>`, and safely skips ARIA binding for coordinate-only `VirtualElement` targets
+  * `@interactive={{true}}` with `hideOn` including `mouseleave` now automatically enables a triangle `safePolygon` corridor between the cursor exit point and the attachment without requiring `@isOffset={{true}}` ([@pzubar](https://github.com/pzubar))
+* [#1095](https://github.com/tylerturdenpants/ember-attacher/pull/1095) / [#1112](https://github.com/tylerturdenpants/ember-attacher/issues/1112) Promote `.ember-attacher` to the browser Top Layer (`popover="manual"` via `showPopover()` / `hidePopover()`) when supported and neither `@renderInPlace` nor `@floatingElementContainer` is explicitly set, automatically scoping portals inside active `dialog:modal` elements to avoid `showModal()` inertness while keeping `{{#in-element}}` fallback ([@pzubar](https://github.com/pzubar))
+* [#1096](https://github.com/tylerturdenpants/ember-attacher/pull/1096) / [#1111](https://github.com/tylerturdenpants/ember-attacher/issues/1111) Add `@strategy` (`'absolute' | 'fixed'`), re-export Floating UI middleware builders from `'ember-attacher'`, wire `middlewareData.hide` (`data-reference-hidden` / `data-escaped`), support `@media (prefers-reduced-motion: reduce)`, and add strict-CSP CSSOM `--ember-attacher-transition-duration` ([@pzubar](https://github.com/pzubar))
+* [#1108](https://github.com/tylerturdenpants/ember-attacher/pull/1108) Export `AttachPopover`, `AttachTooltip`, `BasicAttacher`, and `isVisible` from `'ember-attacher'`, add `"sideEffects"` for Vite tree-shaking, and add Ember 7.4 Vite test harness ([@pzubar](https://github.com/pzubar))
+
+#### :bug: Bug Fix
+* [#1096](https://github.com/tylerturdenpants/ember-attacher/pull/1096) / [#90](https://github.com/tylerturdenpants/ember-attacher/issues/90) Support nested Attachments across Top Layer and portals (clickout protection and LIFO `Escape` dismissal), coordinate-only `VirtualElement` document dismissal, `@lazyRender` outer host mounting, and `@middleware` deduplication / `arrow()` element merging ([@pzubar](https://github.com/pzubar))
+* [#1074](https://github.com/tylerturdenpants/ember-attacher/pull/1074) Reset User-Agent `[popover]` border/padding/background on `.ember-attacher[popover]` so Top-Layer hosts do not inherit the browser default solid border and Canvas chrome ([@pzubar](https://github.com/pzubar))
+
+#### :memo: Documentation & Housecleaning
+* **No Sass/SCSS dependency:** the published addon ships plain CSS (`ember-attacher/styles`); consumers do **not** need `sass`, `scss`, or `ember-cli-sass` to use ember-attacher ([@pzubar](https://github.com/pzubar))
+* [#1096](https://github.com/tylerturdenpants/ember-attacher/pull/1096) Drop `@ember/utils` and refresh `README.md` with `.gjs` / `.gts` examples, Ember 6/7 compatibility, and all 12 Floating UI placements ([@pzubar](https://github.com/pzubar))
+* [#1074](https://github.com/tylerturdenpants/ember-attacher/pull/1074) Modularize `BasicAttacher` into `lib/a11y.js`, `lib/host.js`, and `lib/positioning.js`; document a11y defaults and `safePolygon` in README ([@pzubar](https://github.com/pzubar))
+
+#### Committers: 1
+- Petro Zubar ([@pzubar](https://github.com/pzubar))
+
+
+## v4.2.1 (2026-11-12)
+
+#### :bug: Bug Fix
+* [#1090](https://github.com/tylerturdenpants/ember-attacher/pull/1090) Interactive clickout no longer hides when the clicked node detaches ([@pzubar](https://github.com/pzubar)) — closes [#422](https://github.com/tylerturdenpants/ember-attacher/issues/422) / [#1051](https://github.com/tylerturdenpants/ember-attacher/issues/1051)
+* Positioning checks that a virtual reference `contextElement` is still on the page before updating ([@pzubar](https://github.com/pzubar))
+
+#### :memo: Documentation
+* README: `explicitTarget` and yielded `setReference` / `reference` modifier examples; Testing section recommends `isVisible` from `ember-attacher/test-support` ([#774](https://github.com/tylerturdenpants/ember-attacher/issues/774))
+* Remove legacy Flexi / Sass warning note from README ([#1054](https://github.com/tylerturdenpants/ember-attacher/issues/1054))
+
+#### :house: Internal
+* Drop `ember-cli-sass` and `sass` from `test-app`, converting demo styles to standard CSS ([@pzubar](https://github.com/pzubar))
+* [#1054](https://github.com/tylerturdenpants/ember-attacher/issues/1054) Drop `flexi` and `@html-next/flexi-default-styles`, resolving Sass deprecation warnings in test-app ([@pzubar](https://github.com/pzubar))
+* [#1092](https://github.com/tylerturdenpants/ember-attacher/pull/1092) Moved lifecycle modifiers and DOM helpers out of BasicAttacher into private modules ([@pzubar](https://github.com/pzubar))
+* [#1093](https://github.com/tylerturdenpants/ember-attacher/pull/1093) Bump handlebars from 4.7.8 to 4.7.10 ([@dependabot](https://github.com/apps/dependabot) / [@pzubar](https://github.com/pzubar))
+* [#1092](https://github.com/tylerturdenpants/ember-attacher/pull/1092) Bump fast-uri ([@dependabot](https://github.com/apps/dependabot) / [@pzubar](https://github.com/pzubar))
+* [#1090](https://github.com/tylerturdenpants/ember-attacher/pull/1090) Bump postcss-selector-parser ([@dependabot](https://github.com/apps/dependabot) / [@pzubar](https://github.com/pzubar))
+
+#### Committers: 1
+- Petro Zubar ([@pzubar](https://github.com/pzubar))
+
+
+## v4.2.0 (2026-11-12)
+
+#### :rocket: Enhancement
+* [#1087](https://github.com/tylerturdenpants/ember-attacher/pull/1087) / [#1049](https://github.com/tylerturdenpants/ember-attacher/issues/1049) Additive explicit-target interface ([@pzubar](https://github.com/pzubar))
+* [#1084](https://github.com/tylerturdenpants/ember-attacher/pull/1084) / [#1068](https://github.com/tylerturdenpants/ember-attacher/issues/1068) Public CSS custom properties ([@pzubar](https://github.com/pzubar))
+* Target resolution seam ([@pzubar](https://github.com/pzubar))
+
+#### :bug: Bug Fix
+* [#1088](https://github.com/tylerturdenpants/ember-attacher/pull/1088) Fix Floating UI lifecycle race on hide/teardown (`getComputedStyle` TypeError) ([@pzubar](https://github.com/pzubar))
+* Keep autoUpdate stopped while hidden after options re-render ([@pzubar](https://github.com/pzubar))
+
+#### :house: Internal
+* [#1088](https://github.com/tylerturdenpants/ember-attacher/pull/1088) Bump lodash.omit 4.5.0 → 4.18.0 ([@dependabot](https://github.com/apps/dependabot))
+* [#1089](https://github.com/tylerturdenpants/ember-attacher/pull/1089) Bump undici 6.28.1 → 6.29.1 ([@dependabot](https://github.com/apps/dependabot))
+
+#### Committers: 1
+- Petro Zubar ([@pzubar](https://github.com/pzubar))
 
 
 ## v3.1.0 (2024-03-07)
