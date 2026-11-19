@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+      - v2-migration
   pull_request: {}
 
 concurrency:
@@ -18,18 +19,36 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v3
-      - name: Install Node
-        uses: actions/setup-node@v3
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
         with:
-          node-version: 20.x
-          cache: yarn
+          version: 12.5.1
+
+      - name: Install Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: pnpm
+
       - name: Install Dependencies
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
+
       - name: Lint
-        run: yarn lint
-      - name: Run Tests
-        run: yarn test
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Run Classic Tests (Ember 4.12)
+        working-directory: test-app
+        run: pnpm test
+
+      - name: Run Vite Tests (Ember 7.4)
+        working-directory: vite-test-app
+        run: pnpm test
 
   floating:
     name: "Floating Dependencies"
@@ -37,42 +56,110 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
         with:
-          node-version: 20.x
-          cache: yarn
+          version: 12.5.1
+
+      - name: Install Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: pnpm
+
       - name: Install Dependencies
-        run: yarn install --no-lockfile
-      - name: Run Tests
-        run: yarn test
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Run Classic Tests (Ember 4.12)
+        working-directory: test-app
+        run: pnpm test
+
+      - name: Run Vite Tests (Ember 7.4)
+        working-directory: vite-test-app
+        run: pnpm test
 
   try-scenarios:
     name: ${{ matrix.try-scenario }}
     runs-on: ubuntu-latest
-    needs: "test"
+    needs: test
     timeout-minutes: 10
 
     strategy:
       fail-fast: false
       matrix:
         try-scenario:
-          - ember-lts-3.28
-          - ember-lts-4.8
-          - ember-release
-          - ember-beta
-          - ember-canary
-          - embroider-safe
+          - ember-lts-4.12
+          - ember-lts-5.12
+          - ember-lts-6.12
           - embroider-optimized
 
     steps:
-      - uses: actions/checkout@v3
-      - name: Install Node
-        uses: actions/setup-node@v3
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
         with:
-          node-version: 20.x
-          cache: yarn
+          version: 12.5.1
+
+      - name: Install Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: pnpm
+
       - name: Install Dependencies
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
+
       - name: Run Tests
         run: ./node_modules/.bin/ember try:one ${{ matrix.try-scenario }}
+        working-directory: test-app
+
+  vite-try-scenarios:
+    name: vite-${{ matrix.try-scenario }}
+    runs-on: ubuntu-latest
+    needs: test
+    timeout-minutes: 10
+    continue-on-error: ${{ matrix.experimental }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - try-scenario: ember-lts-4.12
+            experimental: false
+          - try-scenario: ember-lts-5.12
+            experimental: false
+          - try-scenario: ember-lts-6.12
+            experimental: false
+          - try-scenario: ember-release
+            experimental: true
+          - try-scenario: ember-beta
+            experimental: true
+          - try-scenario: ember-canary
+            experimental: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 12.5.1
+
+      - name: Install Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Tests
+        run: ./node_modules/.bin/ember try:one ${{ matrix.try-scenario }}
+        working-directory: vite-test-app

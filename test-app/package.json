@@ -1,0 +1,77 @@
+{
+  "name": "test-app",
+  "version": "4.0.0",
+  "description": "Tooltips and popovers for Ember.js apps",
+  "keywords": [
+    "tooltips",
+    "popovers"
+  ],
+  "repository": "https://github.com/tylerturdenpants/ember-attacher",
+  "license": "MIT",
+  "author": {
+    "name": "Kyle Bishop",
+    "email": "kybishop@gmail.com",
+    "url": "http://kybishop.com"
+  },
+  "directories": {
+    "doc": "doc",
+    "test": "tests"
+  },
+  "scripts": {
+    "build": "ember build",
+    "deploy": "ember build --environment=production && node ../scripts/deploy-gh-pages.mjs dist",
+    "lint:js": "eslint .",
+    "lint": "eslint .",
+    "start": "ember serve",
+    "test": "ember test --test-port=0",
+    "test:all": "ember try:each"
+  },
+  "dependencies": {
+    "ember-auto-import": "^2.13.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.29.13",
+    "@babel/eslint-parser": "^7.29.13",
+    "@ember/optional-features": "^3.0.0",
+    "@ember/string": "^4.0.1",
+    "@ember/test-helpers": "^5.8.0",
+    "@embroider/test-setup": "^4.0.0",
+    "@glimmer/component": "^2.2.1",
+    "@glimmer/tracking": "^1.1.2",
+    "ember-attacher": "workspace:*",
+    "ember-cli": "~7.4.0",
+    "ember-cli-babel": "^8.3.2",
+    "ember-cli-htmlbars": "^7.0.1",
+    "ember-load-initializers": "^3.0.1",
+    "ember-qunit": "^9.2.1",
+    "ember-resolver": "^13.2.0",
+    "ember-source": "~4.12.4",
+    "ember-source-channel-url": "^3.0.0",
+    "ember-try": "~4.0.0",
+    "eslint": "~9.39.5",
+    "eslint-plugin-decorator-position": "^6.1.1",
+    "eslint-plugin-ember": "^13.11.0",
+    "eslint-plugin-n": "^18.5.0",
+    "globals": "^17.14.0",
+    "loader.js": "^4.7.0",
+    "qunit": "^2.26.0",
+    "qunit-dom": "^3.6.0",
+    "sinon": "^22.1.0",
+    "testem": "^3.21.5",
+    "webpack": "~5.112.2"
+  },
+  "engines": {
+    "node": ">= 20"
+  },
+  "ember": {
+    "edition": "octane"
+  },
+  "ember-addon": {
+    "configPath": "./config",
+    "demoURL": "https://tylerturdenpants.github.io/ember-attacher/"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
+  },
+  "private": true
+}
