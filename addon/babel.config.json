@@ -1,0 +1,19 @@
+{
+  "plugins": [
+    "@embroider/addon-dev/template-colocation-plugin",
+    [
+      "babel-plugin-ember-template-compilation",
+      {
+        "targetFormat": "hbs",
+        "transforms": []
+      }
+    ],
+    [
+      "@babel/plugin-transform-typescript",
+      { "allowDeclareFields": true, "onlyRemoveTypeImports": true }
+    ],
+    ["@babel/plugin-proposal-decorators", { "version": "legacy" }],
+    "@babel/plugin-transform-class-static-block",
+    ["@babel/plugin-transform-class-properties", { "loose": true }]
+  ]
+}
