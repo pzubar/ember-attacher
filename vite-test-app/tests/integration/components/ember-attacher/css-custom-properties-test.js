@@ -141,6 +141,31 @@ module('Integration | CSS custom properties', function (hooks) {
     assert.strictEqual(getComputedStyle(look).backgroundColor, 'rgb(51, 51, 51)');
   });
 
+  test('AttachPopover @arrow works with a custom @class without ember-attacher-popover', async function (assert) {
+    await render(hbs`
+      <button id="custom-arrow-target" type="button">Custom</button>
+      <AttachPopover
+        @id="custom-arrow-popover"
+        @target="#custom-arrow-target"
+        @arrow={{true}}
+        @animation="none"
+        @isShown={{true}}
+        @class="custom-popover"
+      >
+        custom arrow
+      </AttachPopover>
+    `);
+
+    const host = find('#custom-arrow-popover');
+    const inner = host.querySelector('.custom-popover');
+    const arrow = host.querySelector(':scope > div > .ember-attacher-arrow');
+
+    assert.ok(inner, 'custom class is applied to the inner container');
+    assert.dom(inner).doesNotHaveClass('ember-attacher-popover');
+    assert.ok(arrow, 'arrow geometry mounts under .ember-attacher > div without look class');
+    assert.strictEqual(getComputedStyle(arrow).position, 'absolute');
+  });
+
   test('light theme reassigns the same public tokens', async function (assert) {
     await render(hbs`
       <button id="light-tooltip-target" type="button">Light target</button>

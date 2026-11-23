@@ -2,9 +2,14 @@
   Look tokens on .ember-attacher-tooltip and opt-in .ember-attacher-popover restyle
   body, .ember-attacher-arrow, and .ember-attacher-fill-circle together.
 
-  --ember-attacher-distance (default 10px) is the inner animation gap. Set it on
-  .ember-attacher or an ancestor to change distance without Floating UI offset()
-  middleware. --ember-attacher-offset / --ember-attacher-arrow-rotate stay internal.
+  Arrow/fill geometry lives on `.ember-attacher > div` so `@arrow` works with any
+  `@class` (no need to also add `.ember-attacher-popover`).
+
+  --ember-attacher-distance (default 10px) is the CSS resting gap when Floating UI
+  `offset()` is not active. --ember-attacher-slide-distance (defaults to distance)
+  drives entry/exit motion. When `.ember-attacher[data-offset]` is set (offset
+  middleware active), the open resting transform is translate(0) so CSS distance
+  does not double-count Floating UI offset().
 
   @starting-style and transition-behavior: allow-discrete progressively enhance
   Top-Layer entry/exit transitions in Chrome 117+, Safari 17.5+, and Firefox 129+.
@@ -19,6 +24,8 @@
 }
 
 .ember-attacher {
+  /* Re-resolve against inherited --ember-attacher-distance so host/style overrides apply. */
+  --ember-attacher-slide-distance: var(--ember-attacher-distance, 10px);
   width: max-content;
   position: absolute;
   top: 0;
@@ -63,9 +70,72 @@
   }
 
   > div {
+    position: relative;
     transition-duration: var(--ember-attacher-transition-duration, 0ms);
     transition-property: transform, opacity;
     transition-timing-function: cubic-bezier(0.165, 0.84, 0.44, 1);
+
+    > .ember-attacher-arrow {
+      --_aw: var(--ember-attacher-arrow-width, calc(var(--ember-attacher-arrow-size, 10px) * 1.4142));
+      --_ah: var(--ember-attacher-arrow-height, calc(var(--ember-attacher-arrow-size, 10px) * 0.7071));
+      --_ab: var(--ember-attacher-arrow-border-width, var(--ember-attacher-border-width, 0px));
+      --_full-w: var(--_aw);
+      --_full-h: var(--_ah);
+      background-color: var(--ember-attacher-fill, currentColor);
+      pointer-events: none;
+      position: absolute;
+      z-index: 1;
+
+      @supports (width: hypot(1px, 1px)) and (width: calc(1px * (2px / 1px))) {
+        --_half: calc(var(--_aw) / 2);
+        --_hyp: hypot(var(--_half), var(--_ah));
+        --_dy: calc(var(--_ab) * (var(--_hyp) / var(--_half)));
+        --_ext-x: calc(var(--_ab) * (var(--_half) / var(--_ah)));
+        --_in-x: calc(var(--_ab) * (var(--_hyp) / var(--_ah)));
+        --_full-w: calc(var(--_aw) + 2 * var(--_ext-x));
+        --_full-h: calc(var(--_ah) + var(--_ab));
+
+        &::before {
+          background-color: var(--ember-attacher-border, var(--ember-attacher-fill, currentColor));
+          content: "";
+          inset: 0;
+          position: absolute;
+        }
+      }
+    }
+
+    > .ember-attacher-fill-backdrop {
+      border-radius: inherit;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      position: absolute;
+      z-index: -1;
+
+      > .ember-attacher-fill-circle {
+        background-color: var(--ember-attacher-fill, currentColor);
+        border-radius: 50%;
+        left: 50%;
+        opacity: 0;
+        position: absolute;
+        transition-property: opacity;
+        transition-timing-function: ease-out;
+        width: 120%;
+        width: calc(100% + 2rem);
+        z-index: -1;
+
+        @media (prefers-reduced-motion: no-preference) {
+          transition-property: transform, opacity;
+        }
+
+        &::before {
+          content: "";
+          padding-top: 100%;
+          padding-top: calc(75% + 2rem);
+          float: left;
+        }
+      }
+    }
   }
 
   &[data-placement^=top],
@@ -73,7 +143,7 @@
     --ember-attacher-circle-hide: scale(0) translate(-50%, -50%);
     --ember-attacher-circle-origin: 0% 50%;
     --ember-attacher-rest: translateY(0);
-    --ember-attacher-offset: translateY(calc(-1 * var(--ember-attacher-distance)));
+    --ember-attacher-offset: translateY(calc(-1 * var(--ember-attacher-slide-distance, var(--ember-attacher-distance, 10px))));
     --ember-attacher-perspective-hide: rotateX(90deg);
     --ember-attacher-perspective-show: rotateX(0);
     --ember-attacher-perspective-origin: bottom;
@@ -105,7 +175,7 @@
     --ember-attacher-circle-hide: scale(0) translate(-50%, -50%);
     --ember-attacher-circle-origin: 0% -50%;
     --ember-attacher-rest: translateY(0);
-    --ember-attacher-offset: translateY(var(--ember-attacher-distance));
+    --ember-attacher-offset: translateY(var(--ember-attacher-slide-distance, var(--ember-attacher-distance, 10px)));
     --ember-attacher-perspective-hide: rotateX(-90deg);
     --ember-attacher-perspective-show: rotateX(0);
     --ember-attacher-perspective-origin: top;
@@ -137,7 +207,7 @@
     --ember-attacher-circle-hide: scale(0) translate(-50%, -33%);
     --ember-attacher-circle-origin: 50% 5%;
     --ember-attacher-rest: translateX(0);
-    --ember-attacher-offset: translateX(calc(-1 * var(--ember-attacher-distance)));
+    --ember-attacher-offset: translateX(calc(-1 * var(--ember-attacher-slide-distance, var(--ember-attacher-distance, 10px))));
     --ember-attacher-perspective-hide: rotateY(-90deg);
     --ember-attacher-perspective-show: rotateY(0);
     --ember-attacher-perspective-origin: right;
@@ -170,7 +240,7 @@
     --ember-attacher-circle-hide: scale(0) translate(-50%, -33%);
     --ember-attacher-circle-origin: -50% 5%;
     --ember-attacher-rest: translateX(0);
-    --ember-attacher-offset: translateX(var(--ember-attacher-distance));
+    --ember-attacher-offset: translateX(var(--ember-attacher-slide-distance, var(--ember-attacher-distance, 10px)));
     --ember-attacher-perspective-hide: rotateY(90deg);
     --ember-attacher-perspective-show: rotateY(0);
     --ember-attacher-perspective-origin: left;
@@ -283,7 +353,7 @@
     }
 
     @media (prefers-reduced-motion: no-preference) {
-      &:is(:popover-open, .\:popover-open, [data-open], [data-closing]) > :is(.ember-attacher-tooltip, .ember-attacher-popover),
+      &:is(:popover-open, .\:popover-open, [data-open], [data-closing]) > div,
       &:is(:popover-open, .\:popover-open, [data-open], [data-closing]) .ember-attacher-fill-circle {
         will-change: transform;
       }
@@ -356,6 +426,66 @@
       }
     }
   }
+
+  /* Floating UI offset() owns resting distance; CSS only slides for entry/exit. */
+  &[data-offset] {
+    &[data-placement^=top],
+    &[data-placement^=bottom],
+    &[data-placement^=left],
+    &[data-placement^=right],
+    &[x-placement^=top],
+    &[x-placement^=bottom],
+    &[x-placement^=left],
+    &[x-placement^=right] {
+      &:is(:popover-open, .\:popover-open, [data-open]):where(:not([data-closing])) {
+        > .ember-attacher-fade,
+        > .ember-attacher-fill,
+        > .ember-attacher-shift,
+        > .ember-attacher-scale,
+        > .ember-attacher-perspective,
+        > .ember-attacher-none {
+          transform: var(--ember-attacher-rest);
+        }
+
+        > .ember-attacher-scale {
+          transform: var(--ember-attacher-rest) scale(1);
+        }
+
+        > .ember-attacher-perspective {
+          transform: perspective(800px) var(--ember-attacher-rest) var(--ember-attacher-perspective-show);
+        }
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        &:is(:popover-open, .\:popover-open, [data-open]):where(:not([data-closing])) {
+          > .ember-attacher-fill,
+          > .ember-attacher-shift {
+            transform: var(--ember-attacher-rest);
+
+            @starting-style {
+              transform: var(--ember-attacher-offset);
+            }
+          }
+
+          > .ember-attacher-scale {
+            transform: var(--ember-attacher-rest) scale(1);
+
+            @starting-style {
+              transform: var(--ember-attacher-offset) scale(0);
+            }
+          }
+
+          > .ember-attacher-perspective {
+            transform: perspective(800px) var(--ember-attacher-rest) var(--ember-attacher-perspective-show);
+
+            @starting-style {
+              transform: perspective(800px) var(--ember-attacher-offset) var(--ember-attacher-perspective-hide);
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 /* :where() keeps default tokens at zero specificity so an app class can override
@@ -391,72 +521,9 @@
   -webkit-font-smoothing: antialiased;
   max-width: var(--ember-attacher-max-width);
   padding: var(--ember-attacher-padding);
-  position: relative;
 
   &.ember-attacher-fill {
     background-color: transparent;
-  }
-
-  > .ember-attacher-arrow {
-    --_aw: var(--ember-attacher-arrow-width, calc(var(--ember-attacher-arrow-size, 10px) * 1.4142));
-    --_ah: var(--ember-attacher-arrow-height, calc(var(--ember-attacher-arrow-size, 10px) * 0.7071));
-    --_ab: var(--ember-attacher-arrow-border-width, var(--ember-attacher-border-width, 0px));
-    --_full-w: var(--_aw);
-    --_full-h: var(--_ah);
-    background-color: var(--ember-attacher-fill);
-    pointer-events: none;
-    position: absolute;
-    z-index: 1;
-
-    @supports (width: hypot(1px, 1px)) and (width: calc(1px * (2px / 1px))) {
-      --_half: calc(var(--_aw) / 2);
-      --_hyp: hypot(var(--_half), var(--_ah));
-      --_dy: calc(var(--_ab) * (var(--_hyp) / var(--_half)));
-      --_ext-x: calc(var(--_ab) * (var(--_half) / var(--_ah)));
-      --_in-x: calc(var(--_ab) * (var(--_hyp) / var(--_ah)));
-      --_full-w: calc(var(--_aw) + 2 * var(--_ext-x));
-      --_full-h: calc(var(--_ah) + var(--_ab));
-
-      &::before {
-        background-color: var(--ember-attacher-border);
-        content: "";
-        inset: 0;
-        position: absolute;
-      }
-    }
-  }
-
-  > .ember-attacher-fill-backdrop {
-    border-radius: inherit;
-    inset: 0;
-    overflow: hidden;
-    pointer-events: none;
-    position: absolute;
-    z-index: -1;
-
-    > .ember-attacher-fill-circle {
-      background-color: var(--ember-attacher-fill);
-      border-radius: 50%;
-      left: 50%;
-      opacity: 0;
-      position: absolute;
-      transition-property: opacity;
-      transition-timing-function: ease-out;
-      width: 120%;
-      width: calc(100% + 2rem);
-      z-index: -1;
-
-      @media (prefers-reduced-motion: no-preference) {
-        transition-property: transform, opacity;
-      }
-
-      &::before {
-        content: "";
-        padding-top: 100%;
-        padding-top: calc(75% + 2rem);
-        float: left;
-      }
-    }
   }
 }
 

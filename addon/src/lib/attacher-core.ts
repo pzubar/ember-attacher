@@ -8,6 +8,7 @@ import {
   type AutoUpdateOptions,
   type ComputePositionConfig,
   type MiddlewareData,
+  type OffsetOptions,
   type Placement,
   type Strategy,
 } from '@floating-ui/dom';
@@ -31,7 +32,13 @@ import {
   showPopoverHost,
   supportsPopoverHost,
 } from './host';
-import { applyPositionResult, buildMiddleware, isTargetConnected } from './positioning';
+import {
+  applyPositionResult,
+  buildMiddleware,
+  createTopLayerAwarePlatform,
+  isTargetConnected,
+  middlewareHasOffset,
+} from './positioning';
 import {
   attacherWaiter,
   cancelScheduled,
@@ -43,8 +50,10 @@ import {
   findTriggerTargetElements,
   getListenerTarget,
   isElementTarget,
+  isRelativeTargetToken,
   isVirtualReference,
   resolveAttachmentTarget,
+  warnIfAttachmentNestedInInteractive,
   type AttachmentTarget,
   type AttachmentTargetInput,
 } from './target-resolution';
@@ -124,6 +133,11 @@ export interface AttacherArgs {
   lazyRender?: boolean;
   /** Floating UI middleware pipeline (merged and deduplicated by `m.name`). */
   middleware?: ComputePositionConfig['middleware'] | null;
+  /**
+   * Shorthand Floating UI `offset()` options (`number` or `{ mainAxis, crossAxis, alignmentAxis }`).
+   * Prepended in `buildMiddleware()` unless `@middleware` already includes `m.name === 'offset'`.
+   */
+  offset?: OffsetOptions | null;
   /** Callback invoked when attachment visibility toggles. */
   onChange?: (isVisible: boolean) => unknown;
   /** Floating UI placement. Defaults to `'top'`. */
@@ -176,8 +190,10 @@ export interface EmberAttacherConfigGroup {
   showDelay?: number | string;
   showDuration?: number | string;
   showOn?: string | null;
+  offset?: OffsetOptions | null;
   strategy?: Strategy;
   tooltipClass?: string;
+  popoverClass?: string;
   useCapture?: boolean;
 }
 
@@ -226,6 +242,12 @@ function nextFloatingId(): string {
 export function resolveTooltipClass(envConfig: EmberAttacherEnvConfig | null | undefined): string {
   const { tooltip, tooltipClass } = envConfig || {};
   return tooltip?.tooltipClass ?? tooltipClass ?? DEFAULTS.tooltipClass;
+}
+
+/** Resolve `<AttachPopover>` default inner class from ENV (`''` keeps popovers unstyled). */
+export function resolvePopoverClass(envConfig: EmberAttacherEnvConfig | null | undefined): string {
+  const { popover, popoverClass } = envConfig || {};
+  return popover?.popoverClass ?? popoverClass ?? DEFAULTS.popoverClass;
 }
 
 const TRUTHY_OPTION_KEYS = new Set<keyof AttacherArgs>(['animation', 'class']);
@@ -674,6 +696,8 @@ export default class AttacherCore {
       }
       this._floatingElement = floatingElement;
       if (floatingElement) {
+        warnIfAttachmentNestedInInteractive(floatingElement, this._isTooltip);
+        this._syncOffsetDataAttribute();
         registerAttacher(this);
         this._attachPopoverEvents(floatingElement);
       } else {
@@ -750,7 +774,51 @@ export default class AttacherCore {
       rawMiddleware: this._opt('middleware') as AttacherArgs['middleware'],
       arrowElement: this._arrowElement,
       arrowEnabled: this.arrow || (!this._isComponentHost && Boolean(this._arrowElement)),
+      offsetOptions: this._opt('offset') as OffsetOptions | null | undefined,
     });
+  }
+
+  _syncOffsetDataAttribute(middleware = this._middleware): void {
+    const floating = this._floatingElement;
+    if (!floating) {
+      return;
+    }
+    if (middlewareHasOffset(middleware)) {
+      floating.setAttribute('data-offset', '');
+    } else {
+      floating.removeAttribute('data-offset');
+    }
+  }
+
+  /**
+   * Ignore Target show/hide when the event originated inside this Attachment's
+   * floating content (or a descendant Attachment) — but still allow events whose
+   * `currentTarget` is this instance's Target (Targets may live inside the default
+   * content block).
+   */
+  _eventOriginatesFromAttachmentTree(event?: Event | null): boolean {
+    if (!event) {
+      return false;
+    }
+    if (descendantAttachmentContainsEvent(this, event)) {
+      return true;
+    }
+    if (!elementContainsEvent(this._floatingElement, event)) {
+      return false;
+    }
+
+    const current = event.currentTarget;
+    if (current instanceof Element) {
+      if (
+        current === this._listenerTarget ||
+        this._registeredEntries.has(current) ||
+        this._popoverTargetEntries.has(current)
+      ) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   get _usePopoverHost(): boolean {
@@ -825,6 +893,7 @@ export default class AttacherCore {
     this._hasTargetBlock = Boolean(hasTargetBlock);
     this._floatingElement = element;
     registerAttacher(this);
+    warnIfAttachmentNestedInInteractive(element, this._isTooltip);
     this._attachPopoverEvents(element);
     this.scheduleArgsSync();
 
@@ -852,6 +921,7 @@ export default class AttacherCore {
       const elementHadExplicitId = Boolean(element.id && element.id !== this._defaultId);
       const hadTarget = Boolean(this._currentTarget);
       this._floatingElement = element;
+      warnIfAttachmentNestedInInteractive(element, this._isTooltip);
       this._syncHeadlessAttachmentElement(element);
       this._attachPopoverEvents(element);
       syncParentAttachment(this);
@@ -1159,6 +1229,10 @@ export default class AttacherCore {
       return;
     }
 
+    if (this._eventOriginatesFromAttachmentTree(event)) {
+      return;
+    }
+
     const floatingEl = this._floatingElement;
     const actionAttr = (trigger.getAttribute('popovertargetaction') || 'toggle').toLowerCase();
 
@@ -1222,6 +1296,9 @@ export default class AttacherCore {
         if (this._isDestroyed) {
           return;
         }
+        if (this._eventOriginatesFromAttachmentTree(event)) {
+          return;
+        }
         if (
           eventName === 'click' &&
           this._currentTarget === entry.element &&
@@ -1229,7 +1306,7 @@ export default class AttacherCore {
           !this._isHiding &&
           this._hideOn.includes('click')
         ) {
-          this._hideAfterDelay();
+          this._hideAfterDelay(event);
           return;
         }
         this._activateRegisteredEntry(entry);
@@ -1622,10 +1699,23 @@ export default class AttacherCore {
       : { popoverTargets: [] as Element[], allTargets: [] as Element[] };
     this._syncPopoverTargetListeners(popoverTargets);
 
+    const targetArg = this.targetArg;
+    if (
+      typeof targetArg === 'string' &&
+      isRelativeTargetToken(targetArg) &&
+      !this._floatingElement
+    ) {
+      assert(
+        `[ember-attacher] Relative @target "${targetArg}" requires a mounted Host element.`,
+        false
+      );
+    }
+
     const target = resolveAttachmentTarget({
-      target: this.targetArg,
+      target: targetArg,
       registeredTarget: this._registeredTarget,
       triggerTargets: allTargets,
+      host: this._floatingElement,
     });
 
     this._listenerTarget = getListenerTarget(target);
@@ -1747,6 +1837,10 @@ export default class AttacherCore {
   }
 
   _showAfterDelay(event?: Event): void {
+    if (this._eventOriginatesFromAttachmentTree(event)) {
+      return;
+    }
+
     if (this._suppressFocusShow && (event?.type === 'focus' || event?.type === 'focusin')) {
       return;
     }
@@ -1802,7 +1896,11 @@ export default class AttacherCore {
     this._update();
   }
 
-  _hideAfterDelay(): void {
+  _hideAfterDelay(event?: Event): void {
+    if (this._eventOriginatesFromAttachmentTree(event)) {
+      return;
+    }
+
     cancelScheduled(this._delayedVisibilityToggle);
     this._isHiding = true;
 
@@ -2073,11 +2171,14 @@ export default class AttacherCore {
     }
 
     const strategy = (this._opt('strategy') as Strategy) || DEFAULTS.strategy;
+    const middleware = this._middleware;
+    this._syncOffsetDataAttribute(middleware);
     const computePositionToken = attacherWaiter.beginAsync();
     computePosition(this._currentTarget, this._floatingElement, {
-      middleware: this._middleware,
+      middleware,
       placement: this._opt('placement') as Placement,
       strategy,
+      platform: createTopLayerAwarePlatform(this._currentTarget),
     })
       .then(({ x, y, placement, strategy: computedStrategy, middlewareData }) => {
         attacherWaiter.endAsync(computePositionToken);

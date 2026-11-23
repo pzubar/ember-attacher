@@ -51,6 +51,7 @@ export default class Attacher extends Component<AttacherSignature> {
     @ariaRole
     @class
     @middleware
+    @offset
     @useCapture
     @onChange
   ~}}{{yield this.core.api}}</template>

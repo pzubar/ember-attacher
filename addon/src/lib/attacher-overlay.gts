@@ -66,6 +66,7 @@ export default class AttacherOverlay extends Component<AttacherOverlaySignature>
     @ariaRole
     @class
     @middleware
+    @offset
     @useCapture
     @onChange
   ~}}<div

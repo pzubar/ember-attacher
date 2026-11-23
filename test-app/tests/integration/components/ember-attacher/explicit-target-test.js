@@ -487,6 +487,121 @@ module('Integration | Component | explicit target', function (hooks) {
     assert.true(isVisible(find('#nullable-target-tip')), 'activates once reactive @target resolves');
   });
 
+  test('relative @target tokens :previous :parent :closest resolve against the mounted Host', async function (assert) {
+    await render(hbs`
+      <div id="relative-root">
+        <button id="prev-btn" type="button">Previous</button>
+        <AttachPopover
+          @id="prev-pop"
+          @target=":previous"
+          @showOn="click"
+          @hideOn="click"
+          @showDuration={{0}}
+          @hideDuration={{0}}
+        >
+          Previous sibling
+        </AttachPopover>
+
+        <div id="parent-wrap">
+          <AttachPopover
+            @id="parent-pop"
+            @target=":parent"
+            @showOn="click"
+            @hideOn="click"
+            @showDuration={{0}}
+            @hideDuration={{0}}
+          >
+            Parent
+          </AttachPopover>
+        </div>
+
+        <section id="closest-section" class="section">
+          <div>
+            <AttachPopover
+              @id="closest-pop"
+              @target=":closest(.section)"
+              @showOn="click"
+              @hideOn="click"
+              @showDuration={{0}}
+              @hideDuration={{0}}
+            >
+              Closest
+            </AttachPopover>
+          </div>
+        </section>
+      </div>
+    `);
+
+    await click('#prev-btn');
+    assert.true(isVisible(find('#prev-pop')), ':previous binds the prior non-attacher sibling');
+    await click('#prev-btn');
+
+    await click('#parent-wrap');
+    assert.true(isVisible(find('#parent-pop')), ':parent binds the Host parentElement');
+    await click('#parent-wrap');
+
+    await click('#closest-section');
+    assert.true(isVisible(find('#closest-pop')), ':closest(.section) binds the matching ancestor');
+  });
+
+  test('@offset shorthand prepends Floating UI offset and sets data-offset', async function (assert) {
+    await render(hbs`
+      <button id="offset-btn" type="button">Offset</button>
+      <AttachTooltip
+        @id="offset-tip"
+        @target="#offset-btn"
+        @offset={{12}}
+        @placement="bottom"
+        @isShown={{true}}
+        @showOn={{null}}
+        @hideOn={{null}}
+        @showDuration={{0}}
+        @hideDuration={{0}}
+      >
+        Offset tip
+      </AttachTooltip>
+    `);
+
+    const tip = find('#offset-tip');
+    assert.true(isVisible(tip));
+    assert.dom(tip).hasAttribute('data-offset');
+    assert.dom(tip).hasAttribute('x-placement', 'bottom');
+  });
+
+  test('descendant Attachment clicks do not re-trigger the parent Target', async function (assert) {
+    await render(hbs`
+      <button id="outer-btn" type="button">Outer</button>
+      <AttachPopover
+        @id="outer-pop"
+        @target="#outer-btn"
+        @showOn="click"
+        @hideOn="click"
+        @interactive={{true}}
+        @showDuration={{0}}
+        @hideDuration={{0}}
+      >
+        <button id="inner-btn" type="button">Inner</button>
+        <AttachPopover
+          @id="inner-pop"
+          @target="#inner-btn"
+          @showOn="click"
+          @hideOn="click"
+          @showDuration={{0}}
+          @hideDuration={{0}}
+        >
+          Nested
+        </AttachPopover>
+      </AttachPopover>
+    `);
+
+    await click('#outer-btn');
+    assert.true(isVisible(find('#outer-pop')), 'outer opens');
+
+    await click('#inner-btn');
+    assert.true(isVisible(find('#outer-pop')), 'outer stays open when clicking nested target');
+    assert.true(isVisible(find('#inner-pop')), 'inner opens');
+  });
+
   test('does not assign permanent will-change on closed tooltips and removes x-arrow', async function (assert) {
     await render(hbs`
       <button id="perf-btn" type="button">Perf target</button>

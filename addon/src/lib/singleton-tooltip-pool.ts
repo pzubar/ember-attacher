@@ -12,10 +12,11 @@ const BASE_ARGS: AttacherArgs = Object.freeze({ ariaRole: 'tooltip' });
 type HostMountCallback = (floatingEl: HTMLElement, arrowEl: HTMLElement | null) => void;
 
 /**
- * Imperative DOM host rendering the shared singleton tooltip element from
- * read-only `AttacherCore` render snapshots.
+ * Imperative DOM host rendering tooltip Attachment markup from read-only
+ * `AttacherCore` render snapshots. Shared by the document-wide singleton pool
+ * and per-modifier controlled `isShown` hosts.
  */
-class TooltipDomHost {
+export class TooltipDomHost {
   doc: Document;
   hostEl: HTMLDivElement | null = null;
   innerEl: HTMLDivElement | null = null;
@@ -135,6 +136,112 @@ class TooltipDomHost {
   }
 }
 
+function createTooltipCore(
+  host: TooltipDomHost,
+  ownerContext: object | null
+): AttacherCore {
+  const holder: { core?: AttacherCore } = {};
+  holder.core = new AttacherCore(ownerContext, () => BASE_ARGS, {
+    defaultConfigKey: 'tooltip',
+    defaultAriaRole: 'tooltip',
+    isComponentHost: false,
+    getDefaultClass: () => resolveTooltipClass(holder.core?.envConfig),
+    onRenderStateChange: (state) =>
+      host.sync(state, (floatingEl, arrowEl) =>
+        holder.core?.setHostElements(floatingEl, arrowEl)
+      ),
+  });
+  return holder.core;
+}
+
+/**
+ * Dedicated per-modifier Host + Core for controlled `{{tooltip ... isShown=...}}`
+ * so controlled visibility never contends with the document-wide singleton pool.
+ */
+export class ControlledTooltipInstance {
+  host: TooltipDomHost;
+  core: AttacherCore;
+  private _visibilitySyncHandle: ScheduledHandle | null = null;
+  private _element: Element | null = null;
+
+  constructor(doc: Document, ownerContext: object | null = null) {
+    this.host = new TooltipDomHost(doc);
+    this.core = createTooltipCore(this.host, ownerContext);
+  }
+
+  register(
+    element: Element,
+    text: string,
+    namedOptions: Record<string, unknown> | null | undefined,
+    owner: Owner | null | undefined
+  ): void {
+    if (!this.core || this.core.isDestroyed) {
+      return;
+    }
+
+    if (this._element && this._element !== element) {
+      this.core.unregisterTargetElement(this._element);
+    }
+    this._element = element;
+
+    const normalizedOptions =
+      namedOptions && typeof namedOptions === 'object' ? (namedOptions as AttacherArgs) : null;
+
+    this.core.registerTargetElement(element, text, normalizedOptions, owner ?? null);
+
+    if (this._visibilitySyncHandle) {
+      cancelScheduled(this._visibilitySyncHandle);
+      this._visibilitySyncHandle = null;
+    }
+
+    const controlledIsShown = normalizedOptions?.isShown;
+    if (controlledIsShown !== true && controlledIsShown !== false) {
+      return;
+    }
+
+    this._visibilitySyncHandle = scheduleMicrotask(() => {
+      this._visibilitySyncHandle = null;
+      if (!this.core || this.core.isDestroyed) {
+        return;
+      }
+
+      const isActive = this.core.isActiveTarget(element);
+      const isOpen = this.core.liveIsShown || !this.core.isHidden;
+
+      if (controlledIsShown === true && (!isActive || !this.core.liveIsShown)) {
+        this.core.show(element, text);
+      } else if (controlledIsShown === false && isActive && isOpen) {
+        this.core.hide();
+      }
+    });
+  }
+
+  unregister(element: Element): void {
+    if (this._visibilitySyncHandle) {
+      cancelScheduled(this._visibilitySyncHandle);
+      this._visibilitySyncHandle = null;
+    }
+
+    this.core?.unregisterTargetElement(element);
+    if (this._element === element) {
+      this._element = null;
+    }
+    this.destroy();
+  }
+
+  destroy(): void {
+    if (this._visibilitySyncHandle) {
+      cancelScheduled(this._visibilitySyncHandle);
+      this._visibilitySyncHandle = null;
+    }
+    this.core?.destroy();
+    this.core = null as unknown as AttacherCore;
+    this.host?.destroy();
+    this.host = null as unknown as TooltipDomHost;
+    this._element = null;
+  }
+}
+
 export class SingletonTooltipPool {
   doc: Document | null;
   host: TooltipDomHost | null;
@@ -144,16 +251,7 @@ export class SingletonTooltipPool {
   constructor(doc: Document) {
     this.doc = doc;
     this.host = new TooltipDomHost(doc);
-    this.core = new AttacherCore(null, () => BASE_ARGS, {
-      defaultConfigKey: 'tooltip',
-      defaultAriaRole: 'tooltip',
-      isComponentHost: false,
-      getDefaultClass: () => resolveTooltipClass(this.core?.envConfig),
-      onRenderStateChange: (state) =>
-        this.host?.sync(state, (floatingEl, arrowEl) =>
-          this.core?.setHostElements(floatingEl, arrowEl)
-        ),
-    });
+    this.core = createTooltipCore(this.host, null);
   }
 
   register(
